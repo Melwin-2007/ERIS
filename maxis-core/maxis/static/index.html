@@ -191,6 +191,7 @@
 </div>
 <div id="css3d-container"></div>
 <canvas id="bhCanvas"></canvas>
+<div id="warpFlash" style="position:absolute; top:0; left:0; width:100%; height:100%; background:white; opacity:0; pointer-events:none; z-index:9999;"></div>
 
 <div class="login-wrap" id="loginModal">
     <button class="l-close" id="modalClose">✕</button>
@@ -207,7 +208,7 @@
     </div>
 </div>
 
-<div class="app" id="app">
+<div class="app" id="app" style="opacity: 0; pointer-events: none; transition: opacity 2s;">
     <div class="hud">
         <div class="hud-left">
             <button class="hud-btn" id="menuBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
@@ -747,7 +748,9 @@ function createGlassCard(title, text) {
     const div = document.createElement('div');
     div.className = 'glass-card';
     div.innerHTML = `<div class="gc-title">${title}</div><div class="gc-text">${text}</div>`;
+    div.style.opacity = '0'; // Start invisible to avoid overlap
     const obj = new THREE.CSS3DObject(div);
+    obj.scale.set(0.4, 0.4, 0.4); // Scale down significantly
     return obj;
 }
 
@@ -757,24 +760,24 @@ function playCinematicIntro() {
     
     // Create 3D CSS Information Cards
     const card1 = createGlassCard("Ankush", "AI & LLM Engineer<br>Crafting intelligent, autonomous systems.");
-    card1.position.set(-60, 0, 800);
-    card1.rotation.y = Math.PI / 8; // Tilted slightly towards center
+    card1.position.set(-20, 0, 700); // Placed along the flight path
+    card1.rotation.y = Math.PI / 8;
     scene.add(card1);
 
     const card2 = createGlassCard("Full Stack Architecture", "FastAPI Backend &middot; Three.js Cinematic Rendering<br>Real-time WebSockets &middot; RAG Persistent Memory");
-    card2.position.set(60, 0, 500);
+    card2.position.set(20, 0, 400);
     card2.rotation.y = -Math.PI / 8;
     scene.add(card2);
 
     const card3 = createGlassCard("The Inspiration", "TON 618: The most massive known black hole.<br>An event horizon of infinite persistent intelligence.");
-    card3.position.set(-50, 0, 200);
+    card3.position.set(-20, 0, 200);
     card3.rotation.y = Math.PI / 8;
     scene.add(card3);
 
-    // Initial station setup (starts far back, flies alongside us)
+    // Initial station setup (starts perfectly in front of camera)
     if(stationModel) {
-        stationModel.position.set(30, -10, 1100);
-        stationModel.rotation.set(0, 0.2, 0.1);
+        stationModel.position.set(0, -4, 1100);
+        stationModel.rotation.set(0, 3.14, 0.1); // Facing away from us
     }
 
     // Master Timeline (90 seconds total)
@@ -782,68 +785,81 @@ function playCinematicIntro() {
         onComplete: () => {
             introPlaying = false;
             controls.enabled = true;
-            // Reveal Login UI smoothly
+            // Reveal Login UI and HUD smoothly
             document.getElementById('loginModal').classList.add('show');
+            document.getElementById('app').style.opacity = '1';
+            document.getElementById('app').style.pointerEvents = 'auto';
             // Clean up CSS objects to save memory
             scene.remove(card1); scene.remove(card2); scene.remove(card3);
         }
     });
 
     // Phase 1: Deep Space Flight (0s to 55s)
-    // Camera travels from Z=1200 down to Z=100
     tl.to(camera.position, {
         z: 100,
         duration: 55,
         ease: "power1.inOut"
     }, 0);
 
-    // Space Station flies alongside us, gradually pulling ahead
+    // Space Station flies alongside us, keeping perfect pace
     if(stationModel) {
         tl.to(stationModel.position, {
             z: 0,
-            x: -20,
             duration: 55,
-            ease: "power2.inOut"
+            ease: "power1.inOut" // Same ease as camera = perfect lock!
         }, 0);
     }
 
-    // Camera Cinematic Panning
-    // Pan Left to Card 1
-    tl.to(camera.rotation, { y: 0.2, duration: 4, ease: "power2.inOut" }, 10);
+    // Camera Cinematic Panning & Card Fades
+    // Card 1
+    tl.to(camera.rotation, { y: 0.1, duration: 4, ease: "power2.inOut" }, 10);
+    tl.to(card1.element, { opacity: 1, duration: 2 }, 12);
+    tl.to(card1.element, { opacity: 0, duration: 2 }, 16);
     tl.to(camera.rotation, { y: 0, duration: 4, ease: "power2.inOut" }, 18);
 
-    // Pan Right to Card 2
-    tl.to(camera.rotation, { y: -0.2, duration: 4, ease: "power2.inOut" }, 25);
+    // Card 2
+    tl.to(camera.rotation, { y: -0.1, duration: 4, ease: "power2.inOut" }, 25);
+    tl.to(card2.element, { opacity: 1, duration: 2 }, 27);
+    tl.to(card2.element, { opacity: 0, duration: 2 }, 31);
     tl.to(camera.rotation, { y: 0, duration: 4, ease: "power2.inOut" }, 33);
 
-    // Pan Left to Card 3
-    tl.to(camera.rotation, { y: 0.2, duration: 4, ease: "power2.inOut" }, 40);
+    // Card 3
+    tl.to(camera.rotation, { y: 0.1, duration: 4, ease: "power2.inOut" }, 40);
+    tl.to(card3.element, { opacity: 1, duration: 2 }, 42);
+    tl.to(card3.element, { opacity: 0, duration: 2 }, 46);
     tl.to(camera.rotation, { y: 0, duration: 4, ease: "power2.inOut" }, 48);
 
     // Phase 2: THE WARP (55s to 75s)
-    // 55s: Space Station drifts to the center, aligning for jump
     if(stationModel) {
-        tl.to(stationModel.position, { x: 0, y: 0, z: -100, duration: 10, ease: "power3.in" }, 55);
+        // Space Station pulls ahead and aligns for the jump, ending up in its final orbit position
+        tl.to(stationModel.position, { x: -40, y: 5, z: -30, duration: 10, ease: "power3.in" }, 55);
+        tl.to(stationModel.rotation, { x: 0.5, y: -0.3, z: 0.2, duration: 10, ease: "power3.in" }, 55);
     }
     
     // 60s: Engage Hyperdrive!
-    tl.to(camera, { fov: 140, duration: 8, ease: "power4.in", onUpdate: () => camera.updateProjectionMatrix() }, 60);
-    // Extreme bloom for warp light-streaks effect
-    tl.to(bloomPass, { strength: 4.5, threshold: 0.1, duration: 8, ease: "power4.in" }, 60);
+    tl.to(camera, { fov: 160, duration: 8, ease: "power4.in", onUpdate: () => camera.updateProjectionMatrix() }, 60);
+    tl.to(bloomPass, { strength: 6.0, threshold: 0.0, duration: 8, ease: "power4.in" }, 60);
     
-    // Camera blasts forward through the remaining void
+    // Camera blasts forward
     tl.to(camera.position, { z: -15, duration: 10, ease: "power4.inOut" }, 65);
 
     // Phase 3: Arrival (75s to 90s)
-    // Snap out of warp, FOV and Bloom return to normal
-    tl.to(camera, { fov: 45, duration: 5, ease: "power2.out", onUpdate: () => camera.updateProjectionMatrix() }, 75);
-    tl.to(bloomPass, { strength: 1.5, threshold: 0.5, duration: 5, ease: "power2.out" }, 75);
+    // The Flash!
+    tl.to(document.getElementById('warpFlash'), { opacity: 1, duration: 0.2 }, 74.8);
+    tl.to(document.getElementById('warpFlash'), { opacity: 0, duration: 2.0 }, 75.0);
+
+    tl.to(camera, { fov: 45, duration: 3, ease: "power2.out", onUpdate: () => camera.updateProjectionMatrix() }, 75);
+    tl.to(bloomPass, { strength: 1.5, threshold: 0.5, duration: 3, ease: "power2.out" }, 75);
+    
+    // Snap stars back to normal
+    if(starSystemModel) {
+        tl.to(starSystemModel.scale, { z: 1, duration: 2, ease: "power4.out" }, 75);
+    }
     
     // Reveal Black Hole dynamically
     tl.call(() => {
         if(blackHoleModel) {
             blackHoleModel.visible = true;
-            // Pop out of hyperspace effect using scale
             blackHoleModel.scale.set(0.01, 0.01, 0.01);
             gsap.to(blackHoleModel.scale, { x: 1, y: 1, z: 1, duration: 3, ease: "elastic.out(1, 0.7)" });
         }
