@@ -138,8 +138,32 @@
         .cr-tab{flex:1;padding:12px;background:none;border:none;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;font-family:'Inter',sans-serif;transition:all .2s}
         .cr-tab.active{color:var(--violet);border-bottom-color:var(--violet)}.cr-tab:not(.active){color:rgba(139,92,246,.3)}
 
-        .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(12,6,20,.85);backdrop-filter:blur(20px);border:1px solid rgba(255,107,0,.08);color:var(--text);padding:9px 22px;border-radius:20px;font-size:11px;opacity:0;transition:all .3s;z-index:200;pointer-events:none}
         .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+        /* Intro CSS3D Elements */
+        #css3d-container {position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;}
+        .glass-card {
+            background: rgba(10, 5, 20, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 107, 0, 0.3);
+            border-radius: 12px;
+            padding: 30px;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            text-align: center;
+            width: 350px;
+            box-shadow: 0 0 40px rgba(255, 107, 0, 0.1);
+        }
+        .gc-title {font-size: 24px; font-weight: 600; margin-bottom: 10px; color: #ff8c42;}
+        .gc-text {font-size: 14px; color: #ccc; line-height: 1.5; font-weight: 300;}
+        
+        /* Initialize Button */
+        #initBtn {
+            margin-top: 30px; padding: 12px 24px; background: none; border: 1px solid rgba(255,107,0,0.5); 
+            color: #ff8c42; font-family: 'Outfit', sans-serif; letter-spacing: 4px; cursor: pointer;
+            transition: all 0.3s; display: none; border-radius: 4px;
+        }
+        #initBtn:hover { background: rgba(255,107,0,0.1); box-shadow: 0 0 20px rgba(255,107,0,0.2); }
 
         @media(max-width:768px){.chat-area,.creator-panel{width:100%;border-left:none}.s-title{letter-spacing:16px}.login-card{width:85%;padding:30px 22px}.message{max-width:95%}}
     </style>
@@ -155,12 +179,20 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
 <body>
-<div id="splash"><div style="font-family:'Outfit',sans-serif;font-size:1rem;font-weight:400;letter-spacing:0.1em;color:#888;margin-bottom:10px;">LOADING 3D ASSETS...</div><div class="s-title">ERIS</div><div class="s-sub">event horizon intelligence</div></div>
+<div id="splash">
+    <div style="font-family:'Outfit',sans-serif;font-size:1rem;font-weight:400;letter-spacing:0.1em;color:#888;margin-bottom:10px;" id="splashLoadText">LOADING 3D ASSETS...</div>
+    <div class="s-title">ERIS</div>
+    <div class="s-sub">event horizon intelligence</div>
+    <button id="initBtn">INITIALIZE</button>
+</div>
+<div id="css3d-container"></div>
 <canvas id="bhCanvas"></canvas>
 
-<div class="login-wrap show" id="loginModal">
+<div class="login-wrap" id="loginModal">
     <button class="l-close" id="modalClose">✕</button>
     <div class="login-card">
         <div class="lc-logo">Eris</div>
@@ -246,16 +278,20 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 1500);
-// Position camera right above the edge of the accretion disk
-camera.position.set(-45, 6, -20);
+const css3dRenderer = new THREE.CSS3DRenderer();
+css3dRenderer.setSize(window.innerWidth, window.innerHeight);
+document.getElementById('css3d-container').appendChild(css3dRenderer.domElement);
 
-// Add OrbitControls for mouse interaction
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 3000);
+// Start camera way back in deep space!
+camera.position.set(0, 0, 1200);
+
+// Add OrbitControls for mouse interaction (disabled during intro)
+const controls = new THREE.OrbitControls(camera, css3dRenderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-// We will set the target to the Space Station later, so you orbit the ship!
+controls.enabled = false;
 
 // Post-Processing
 const renderScene = new THREE.RenderPass(scene, camera);
@@ -301,10 +337,17 @@ let stationModel = null;
 let mixer = null; // For playing GLTF animations
 
 let loadedModels = 0;
+let introPlaying = true;
 function checkLoadComplete() {
     loadedModels++;
-    if(loadedModels === 2) { // Black Hole and Space Station
-        setTimeout(()=>{document.getElementById('splash').classList.add('gone')}, 500);
+    if(loadedModels === 2) { 
+        document.getElementById('splashLoadText').style.display = 'none';
+        const btn = document.getElementById('initBtn');
+        btn.style.display = 'inline-block';
+        btn.addEventListener('click', () => {
+            document.getElementById('splash').classList.add('gone');
+            playCinematicIntro();
+        });
     }
 }
 
@@ -690,19 +733,154 @@ function rsz() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    css3dRenderer.setSize(window.innerWidth, window.innerHeight);
     composer.setSize(window.innerWidth, window.innerHeight);
 }
 window.addEventListener('resize', rsz);
 rsz(); // Call immediately to fix initial aspect ratio stretch
 window.addEventListener('click', () => { interact = Math.min(interact + 0.5, 1.5); });
 
+// ══════════════════════════════════════════════════
+//  CINEMATIC INTRO TIMELINE (GSAP)
+// ══════════════════════════════════════════════════
+function createGlassCard(title, text) {
+    const div = document.createElement('div');
+    div.className = 'glass-card';
+    div.innerHTML = `<div class="gc-title">${title}</div><div class="gc-text">${text}</div>`;
+    const obj = new THREE.CSS3DObject(div);
+    return obj;
+}
+
+function playCinematicIntro() {
+    // Hide black hole during deep space flight
+    if(blackHoleModel) blackHoleModel.visible = false;
+    
+    // Create 3D CSS Information Cards
+    const card1 = createGlassCard("Ankush", "AI & LLM Engineer<br>Crafting intelligent, autonomous systems.");
+    card1.position.set(-60, 0, 800);
+    card1.rotation.y = Math.PI / 8; // Tilted slightly towards center
+    scene.add(card1);
+
+    const card2 = createGlassCard("Full Stack Architecture", "FastAPI Backend &middot; Three.js Cinematic Rendering<br>Real-time WebSockets &middot; RAG Persistent Memory");
+    card2.position.set(60, 0, 500);
+    card2.rotation.y = -Math.PI / 8;
+    scene.add(card2);
+
+    const card3 = createGlassCard("The Inspiration", "TON 618: The most massive known black hole.<br>An event horizon of infinite persistent intelligence.");
+    card3.position.set(-50, 0, 200);
+    card3.rotation.y = Math.PI / 8;
+    scene.add(card3);
+
+    // Initial station setup (starts far back, flies alongside us)
+    if(stationModel) {
+        stationModel.position.set(30, -10, 1100);
+        stationModel.rotation.set(0, 0.2, 0.1);
+    }
+
+    // Master Timeline (90 seconds total)
+    const tl = gsap.timeline({
+        onComplete: () => {
+            introPlaying = false;
+            controls.enabled = true;
+            // Reveal Login UI smoothly
+            document.getElementById('loginModal').classList.add('show');
+            // Clean up CSS objects to save memory
+            scene.remove(card1); scene.remove(card2); scene.remove(card3);
+        }
+    });
+
+    // Phase 1: Deep Space Flight (0s to 55s)
+    // Camera travels from Z=1200 down to Z=100
+    tl.to(camera.position, {
+        z: 100,
+        duration: 55,
+        ease: "power1.inOut"
+    }, 0);
+
+    // Space Station flies alongside us, gradually pulling ahead
+    if(stationModel) {
+        tl.to(stationModel.position, {
+            z: 0,
+            x: -20,
+            duration: 55,
+            ease: "power2.inOut"
+        }, 0);
+    }
+
+    // Camera Cinematic Panning
+    // Pan Left to Card 1
+    tl.to(camera.rotation, { y: 0.2, duration: 4, ease: "power2.inOut" }, 10);
+    tl.to(camera.rotation, { y: 0, duration: 4, ease: "power2.inOut" }, 18);
+
+    // Pan Right to Card 2
+    tl.to(camera.rotation, { y: -0.2, duration: 4, ease: "power2.inOut" }, 25);
+    tl.to(camera.rotation, { y: 0, duration: 4, ease: "power2.inOut" }, 33);
+
+    // Pan Left to Card 3
+    tl.to(camera.rotation, { y: 0.2, duration: 4, ease: "power2.inOut" }, 40);
+    tl.to(camera.rotation, { y: 0, duration: 4, ease: "power2.inOut" }, 48);
+
+    // Phase 2: THE WARP (55s to 75s)
+    // 55s: Space Station drifts to the center, aligning for jump
+    if(stationModel) {
+        tl.to(stationModel.position, { x: 0, y: 0, z: -100, duration: 10, ease: "power3.in" }, 55);
+    }
+    
+    // 60s: Engage Hyperdrive!
+    tl.to(camera, { fov: 140, duration: 8, ease: "power4.in", onUpdate: () => camera.updateProjectionMatrix() }, 60);
+    // Extreme bloom for warp light-streaks effect
+    tl.to(bloomPass, { strength: 4.5, threshold: 0.1, duration: 8, ease: "power4.in" }, 60);
+    
+    // Camera blasts forward through the remaining void
+    tl.to(camera.position, { z: -15, duration: 10, ease: "power4.inOut" }, 65);
+
+    // Phase 3: Arrival (75s to 90s)
+    // Snap out of warp, FOV and Bloom return to normal
+    tl.to(camera, { fov: 45, duration: 5, ease: "power2.out", onUpdate: () => camera.updateProjectionMatrix() }, 75);
+    tl.to(bloomPass, { strength: 1.5, threshold: 0.5, duration: 5, ease: "power2.out" }, 75);
+    
+    // Reveal Black Hole dynamically
+    tl.call(() => {
+        if(blackHoleModel) {
+            blackHoleModel.visible = true;
+            // Pop out of hyperspace effect using scale
+            blackHoleModel.scale.set(0.01, 0.01, 0.01);
+            gsap.to(blackHoleModel.scale, { x: 1, y: 1, z: 1, duration: 3, ease: "elastic.out(1, 0.7)" });
+        }
+    }, null, 74.5);
+
+    // Final camera settle into orbit
+    tl.to(camera.position, { x: -45, y: 6, z: -20, duration: 10, ease: "power2.out" }, 75);
+    tl.to(camera.rotation, { x: 0, y: 0, z: 0, duration: 10, ease: "power2.out" }, 75); 
+    
+    if(stationModel) {
+        // Station settles into its final orbit position
+        tl.to(stationModel.position, { x: -43.7, y: 5.5, z: -27.9, duration: 10, ease: "power2.out" }, 75);
+        tl.to(stationModel.rotation, { x: 0.5, y: -0.3, z: 0.2, duration: 10, ease: "power2.out" }, 75);
+        
+        // After 85s, lock OrbitControls back to the station
+        tl.call(() => { 
+            controls.target.copy(stationModel.position); 
+            controls.update(); 
+        }, null, 85);
+    }
+}
+
+
 const clock = new THREE.Clock();
 function animate() {
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
     
-    // Update orbit controls
-    controls.update();
+    if (!introPlaying) {
+        // Only update OrbitControls after cinematic is done
+        controls.update();
+        if (stationModel) {
+            // Subtle floating bob
+            stationModel.position.y = 5.5 + Math.sin(clock.elapsedTime * 0.5) * 0.1;
+            controls.target.copy(stationModel.position);
+        }
+    }
     
     if (blackHoleModel) {
         blackHoleModel.rotation.y -= 0.05 * delta; // Slowly rotate the accretion disk
@@ -710,19 +888,14 @@ function animate() {
     if (starSystemModel) {
         starSystemModel.rotation.y -= 0.01 * delta; // Majestic slow galaxy rotation
     }
-    if (stationModel) {
-        // Very subtle floating (only Y axis so OrbitControls doesn't jitter too much)
-        stationModel.position.y = 5.5 + Math.sin(clock.elapsedTime * 0.5) * 0.1;
-        // Keep OrbitControls centered perfectly on the station as it bobs
-        controls.target.copy(stationModel.position);
-    }
     
-    // Update animations
+    // Update GLTF embedded animations
     if (mixer) {
         mixer.update(delta);
     }
     
     composer.render();
+    css3dRenderer.render(scene, camera);
 }
 animate();
 
