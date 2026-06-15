@@ -189,7 +189,7 @@
     <div class="s-sub">event horizon intelligence</div>
     <button id="initBtn">INITIALIZE</button>
 </div>
-<div id="css3d-container"></div>
+<div id="css3d-container" style="position:absolute; inset:0; z-index:50; pointer-events:none;"></div>
 <canvas id="bhCanvas"></canvas>
 <div id="warpFlash" style="position:absolute; top:0; left:0; width:100%; height:100%; background:white; opacity:0; pointer-events:none; z-index:9999;"></div>
 
@@ -760,24 +760,24 @@ function playCinematicIntro() {
     
     // Create 3D CSS Information Cards
     const card1 = createGlassCard("Ankush", "AI & LLM Engineer<br>Crafting intelligent, autonomous systems.");
-    card1.position.set(-20, 0, 700); // Placed along the flight path
+    card1.position.set(-20, 0, 980); // Camera will be at 1000
     card1.rotation.y = Math.PI / 8;
     scene.add(card1);
 
     const card2 = createGlassCard("Full Stack Architecture", "FastAPI Backend &middot; Three.js Cinematic Rendering<br>Real-time WebSockets &middot; RAG Persistent Memory");
-    card2.position.set(20, 0, 400);
+    card2.position.set(20, 0, 680); // Camera will be at 700
     card2.rotation.y = -Math.PI / 8;
     scene.add(card2);
 
     const card3 = createGlassCard("The Inspiration", "TON 618: The most massive known black hole.<br>An event horizon of infinite persistent intelligence.");
-    card3.position.set(-20, 0, 200);
+    card3.position.set(-20, 0, 380); // Camera will be at 400
     card3.rotation.y = Math.PI / 8;
     scene.add(card3);
 
-    // Initial station setup (starts perfectly in front of camera)
+    // Initial station setup (starts slightly behind camera)
     if(stationModel) {
-        stationModel.position.set(0, -4, 1100);
-        stationModel.rotation.set(0, 3.14, 0.1); // Facing away from us
+        stationModel.position.set(-15, -2, 1250); 
+        stationModel.rotation.set(0, 3.14, 0.1); 
     }
 
     // Master Timeline (90 seconds total)
@@ -801,12 +801,12 @@ function playCinematicIntro() {
         ease: "power1.inOut"
     }, 0);
 
-    // Space Station flies alongside us, keeping perfect pace
+    // Space Station flies alongside us, gradually overtaking
     if(stationModel) {
         tl.to(stationModel.position, {
-            z: 0,
+            z: 80, // Ends up 20 units ahead of camera
             duration: 55,
-            ease: "power1.inOut" // Same ease as camera = perfect lock!
+            ease: "power1.inOut" 
         }, 0);
     }
 
