@@ -289,7 +289,7 @@ const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerH
 camera.position.set(0, 0, 1200);
 
 // Add OrbitControls for mouse interaction (disabled during intro)
-const controls = new THREE.OrbitControls(camera, css3dRenderer.domElement);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.enabled = false;
@@ -788,7 +788,8 @@ function playCinematicIntro() {
             // Reveal Login UI and HUD smoothly
             document.getElementById('loginModal').classList.add('show');
             document.getElementById('app').style.opacity = '1';
-            document.getElementById('app').style.pointerEvents = 'auto';
+            // Keep app pointerEvents as 'none' so dragging the 3D camera works.
+            document.getElementById('app').style.pointerEvents = 'none';
             // Clean up CSS objects to save memory
             scene.remove(card1); scene.remove(card2); scene.remove(card3);
         }
@@ -876,12 +877,13 @@ function playCinematicIntro() {
         
         // After 85s, lock OrbitControls back to the station
         tl.call(() => { 
-            controls.target.copy(stationModel.position); 
+            // Start the target where the camera is currently looking to prevent a jump cut!
+            controls.target.set(-45, 6, -27.9);
             
             // Upgrade to third-person "game" camera
             controls.minPolarAngle = THREE.MathUtils.degToRad(15);
             controls.maxPolarAngle = THREE.MathUtils.degToRad(165);
-            controls.minDistance = 8;
+            controls.minDistance = 6;
             controls.maxDistance = 35;
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
