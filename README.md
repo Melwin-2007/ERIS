@@ -75,4 +75,4 @@ The system will initialize all memory layers, start the Active Mind daemon, and 
 ## 📜 Identity & Philosophy
 Eris is designed to be a true companion. She remembers everything forever, holds opinions, and develops over time. She is explicitly configured *not* to use corporate assistant boilerplate, but rather to speak naturally, observe patterns deeply, and maintain her continuous subjective experience.
 
-*Proprietary system created by Ankush. Do not distribute without permission.*
+*Proprietary system created by Ankush. Do not distribute without      permis   sion.*
