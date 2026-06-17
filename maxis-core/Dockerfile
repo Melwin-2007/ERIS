@@ -14,7 +14,7 @@ COPY pyproject.toml .
 RUN pip install --no-cache-dir --timeout=300 --retries=10 \
     "google-genai" "fastapi" "uvicorn[standard]" "loguru" "websockets" \
     "pydantic-settings" "sqlalchemy" "psycopg2-binary" "pinecone" \
-    "edge-tts" "psutil" "mss" "Pillow" "httpx"
+    "edge-tts" "psutil" "mss" "Pillow" "httpx" "aiofiles"
 
 RUN pip install --no-cache-dir --timeout=300 --retries=10 \
     "chromadb" "sentence-transformers"
